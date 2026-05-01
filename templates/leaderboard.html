@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budtender Leaderboard · The Travel Agency</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #04080a;
+      --bg2: #070e0a;
+      --card: rgba(255,255,255,0.035);
+      --border: rgba(255,255,255,0.07);
+      --text: #cce8d4;
+      --muted: #4d7a5c;
+      --accent: #2dff6e;
+      --accent-dim: rgba(45,255,110,0.18);
+      --gold: #ffc84a;
+      --gold-glow: rgba(255,200,74,0.32);
+      --silver: #a8bec8;
+      --silver-glow: rgba(168,190,200,0.28);
+      --bronze: #d4845a;
+      --bronze-glow: rgba(212,132,90,0.28);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── BACKGROUND LAYER ── */
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .smoke-wrap {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .smoke-puff {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      animation: risePuff linear infinite;
+      opacity: 0;
+    }
+
+    @keyframes risePuff {
+      0%   { transform: translateY(0) translateX(0) scale(1);   opacity: 0; }
+      8%   { opacity: 1; }
+      85%  { opacity: 0.4; }
+      100% { transform: translateY(-110vh) translateX(var(--drift)) scale(2.6); opacity: 0; }
+    }
+
+    .particle {
+      position: fixed;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
+      animation: floatParticle linear infinite;
+    }
+
+    @keyframes floatParticle {
+      0%   { transform: translateY(0) translateX(0); opacity: 0; }
+      10%  { opacity: 0.6; }
+      90%  { opacity: 0.2; }
+      100% { transform: translateY(-80vh) translateX(var(--px)); opacity: 0; }
+    }
+
+    /* ── LAYOUT ── */
+    .page {
+      position: relative;
+      z-index: 10;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 4rem;
+    }
+
+    /* ── HEADER ── */
+    header {
+      text-align: center;
+      margin-bottom: 3.5rem;
+    }
+
+    .brand-tag {
+      display: inline-block;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.45em;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.08);
+      padding: 0.35rem 1.2rem;
+      border-radius: 999px;
+      margin-bottom: 1.4rem;
+      text-transform: uppercase;
+    }
+
+    .main-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3.5rem, 10vw, 6.5rem);
+      line-height: 0.9;
+      letter-spacing: 0.04em;
+      color: #fff;
+      text-shadow:
+        0 0 40px rgba(45,255,110,0.25),
+        0 0 80px rgba(45,255,110,0.1);
+      margin-bottom: 0.6rem;
+    }
+
+    .main-title span {
+      display: block;
+      color: var(--accent);
+      text-shadow:
+        0 0 20px rgba(45,255,110,0.6),
+        0 0 60px rgba(45,255,110,0.3);
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    .date-range {
+      font-size: 0.8rem;
+      color: rgba(204,232,212,0.4);
+      letter-spacing: 0.1em;
+    }
+
+    /* ── PODIUM ── */
+    .podium-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1.18fr 1fr;
+      gap: 1rem;
+      align-items: end;
+      margin-bottom: 3.5rem;
+    }
+
+    .pod-card {
+      border-radius: 18px;
+      padding: 1.8rem 1.2rem 1.6rem;
+      text-align: center;
+      border: 1px solid var(--border);
+      background: var(--card);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .pod-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      opacity: 0.07;
+      pointer-events: none;
+    }
+
+    .pod-card:hover { transform: translateY(-4px); }
+
+    /* 1st */
+    .pod-card.first {
+      background: rgba(255,200,74,0.06);
+      border-color: rgba(255,200,74,0.45);
+      box-shadow:
+        0 0 0 1px rgba(255,200,74,0.15),
+        0 8px 40px rgba(255,200,74,0.2),
+        0 0 80px rgba(255,200,74,0.08);
+      animation: goldPulse 3.5s ease-in-out infinite;
+    }
+
+    @keyframes goldPulse {
+      0%,100% { box-shadow: 0 0 0 1px rgba(255,200,74,0.15), 0 8px 40px rgba(255,200,74,0.2), 0 0 80px rgba(255,200,74,0.08); }
+      50%      { box-shadow: 0 0 0 1px rgba(255,200,74,0.25), 0 8px 60px rgba(255,200,74,0.35), 0 0 120px rgba(255,200,74,0.15); }
+    }
+
+    .pod-card.second {
+      background: rgba(168,190,200,0.04);
+      border-color: rgba(168,190,200,0.3);
+      box-shadow: 0 4px 30px rgba(168,190,200,0.12);
+    }
+
+    .pod-card.third {
+      background: rgba(212,132,90,0.04);
+      border-color: rgba(212,132,90,0.3);
+      box-shadow: 0 4px 30px rgba(212,132,90,0.12);
+    }
+
+    .pod-medal {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+      display: block;
+      filter: drop-shadow(0 0 12px currentColor);
+    }
+
+    .pod-rank-num {
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 4.5rem;
+      line-height: 1;
+      opacity: 0.06;
+      pointer-events: none;
+    }
+
+    .first  .pod-rank-num { color: var(--gold);   opacity: 0.12; }
+    .second .pod-rank-num { color: var(--silver); opacity: 0.1; }
+    .third  .pod-rank-num { color: var(--bronze); opacity: 0.1; }
+
+    .pod-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.7rem;
+      letter-spacing: 0.05em;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 0.4rem;
+    }
+
+    .first  .pod-name { font-size: 2rem; }
+
+    .pod-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.8rem;
+      line-height: 1;
+      margin-bottom: 0.2rem;
+    }
+
+    .first  .pod-score { font-size: 3.4rem; color: var(--gold); text-shadow: 0 0 20px rgba(255,200,74,0.6); }
+    .second .pod-score { color: var(--silver); }
+    .third  .pod-score { color: var(--bronze); }
+
+    .pod-label {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.8rem;
+    }
+
+    .pod-days {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .day-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      opacity: 0.7;
+    }
+
+    .first  .day-dot { background: var(--gold); }
+    .second .day-dot { background: var(--silver); }
+    .third  .day-dot { background: var(--bronze); }
+
+    .pod-days-label {
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+    }
+
+    /* ── SECTION DIVIDER ── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-divider::before,
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.08), transparent);
+    }
+
+    .section-divider span {
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── RANKINGS LIST ── */
+    .rankings-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 3rem;
+    }
+
+    .rank-row {
+      display: flex;
+      align-items: center;
+      gap: 1.2rem;
+      padding: 1rem 1.4rem;
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-left: 3px solid rgba(45,255,110,0.25);
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.2s ease;
+      cursor: default;
+    }
+
+    .rank-row:hover {
+      background: rgba(45,255,110,0.05);
+      border-left-color: rgba(45,255,110,0.6);
+      transform: translateX(6px);
+    }
+
+    .rank-row-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      color: var(--muted);
+      min-width: 32px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .rank-row-bg {
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 5rem;
+      color: rgba(255,255,255,0.025);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .rank-row-name {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #e2f0e8;
+      letter-spacing: 0.03em;
+    }
+
+    .rank-row-dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .rank-row-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(45,255,110,0.35);
+    }
+
+    .rank-row-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.7rem;
+      color: var(--accent);
+      letter-spacing: 0.03em;
+      min-width: 56px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .rank-row-upt-label {
+      font-size: 0.55rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      min-width: 32px;
+      flex-shrink: 0;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+
+    footer p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 5rem 2rem;
+      color: var(--muted);
+    }
+
+    .empty-state .big-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .empty-state h2 { font-family: 'Bebas Neue'; font-size: 2rem; letter-spacing: 0.05em; color: rgba(255,255,255,0.2); }
+    .empty-state p { font-size: 0.85rem; margin-top: 0.5rem; }
+
+    /* ── CLICKABLE CARDS & NAMES ── */
+    .pod-card {
+      cursor: pointer;
+    }
+    .pod-card:hover .pod-name { color: var(--accent); }
+    .pod-card.first:hover  { box-shadow: 0 0 0 1px rgba(255,200,74,0.3), 0 8px 60px rgba(255,200,74,0.4), 0 0 120px rgba(255,200,74,0.18); }
+    .pod-card.second:hover { box-shadow: 0 4px 40px rgba(168,190,200,0.25); }
+    .pod-card.third:hover  { box-shadow: 0 4px 40px rgba(212,132,90,0.25); }
+
+    .rank-row-name {
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+    .rank-row-name:hover { color: var(--accent); }
+
+    /* ── MODAL ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #0b150e;
+      border: 1px solid rgba(45,255,110,0.2);
+      border-radius: 18px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.2s ease;
+      box-shadow: 0 0 60px rgba(45,255,110,0.08), 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .modal-backdrop.open .modal {
+      transform: translateY(0) scale(1);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: rgba(255,255,255,0.06);
+      border: none;
+      color: var(--muted);
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    .modal-rank-badge {
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+    }
+
+    .modal-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.4rem;
+      letter-spacing: 0.05em;
+      color: #fff;
+      margin-bottom: 1.5rem;
+      line-height: 1;
+    }
+
+    .modal-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .modal-stat {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 0.9rem 0.5rem;
+      text-align: center;
+    }
+
+    .modal-stat-val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.8rem;
+      line-height: 1;
+      color: var(--accent);
+    }
+
+    .modal-stat-val.gold   { color: var(--gold); }
+    .modal-stat-val.silver { color: var(--silver); }
+    .modal-stat-val.bronze { color: var(--bronze); }
+
+    .modal-stat-label {
+      font-size: 0.6rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .modal-daily-title {
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+
+    .modal-daily-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0.75rem;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.025);
+      margin-bottom: 5px;
+      font-size: 0.85rem;
+    }
+
+    .modal-daily-date { color: rgba(204,232,212,0.6); }
+    .modal-daily-nums { display: flex; gap: 1.2rem; }
+    .modal-daily-upt  { color: var(--accent); font-family: 'Bebas Neue'; font-size: 1.1rem; letter-spacing: 0.04em; }
+    .modal-daily-sub  { color: var(--muted); font-size: 0.75rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .podium-wrap {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        align-items: stretch;
+      }
+      .pod-card.first { order: -1; }
+      .pod-card.second { order: 0; }
+      .pod-card.third { order: 1; }
+      .pod-card.first { animation: none; }
+      .rank-row-bg { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+<div class="smoke-wrap" id="smokeWrap"></div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div class="modal-rank-badge" id="modalRank"></div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-stats" id="modalStats"></div>
+    <div class="modal-daily-title" id="modalDailyTitle"></div>
+    <div id="modalDaily"></div>
+  </div>
+</div>
+
+<div class="page">
+  <header>
+    <div class="brand-tag">The Travel Agency · DTBK</div>
+    <h1 class="main-title">
+      Budtender<br><span>Leaderboard</span>
+    </h1>
+    <p class="subtitle">Average Units Per Transaction</p>
+    <p class="date-range" id="dateRange">—</p>
+  </header>
+
+  <div id="podiumWrap"></div>
+
+  <div class="section-divider" id="ranksDivider" style="display:none">
+    <span>Full Rankings</span>
+  </div>
+
+  <div class="rankings-list" id="rankingsList"></div>
+
+  <footer>
+    <p>Last updated: <span id="lastUpdated">—</span></p>
+    <p style="margin-top:4px; opacity:0.5;">Manager accounts excluded · Ranked by avg units/transaction</p>
+  </footer>
+</div>
+
+<script>
+/* ─── SVG ICON DEFINITIONS ─── */
+const ICONS = [
+  /* cannabis leaf */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120">
+    <path d="M50,112 L50,62 C50,62 38,72 24,67 C13,63 8,52 13,42 C20,48 33,52 48,64 C38,50 26,38 30,22 C37,28 44,44 50,62 C50,44 46,26 54,16 C58,30 56,48 50,62 C56,44 64,28 70,22 C74,38 62,50 52,64 C67,52 80,48 87,42 C92,52 87,63 76,67 C62,72 50,62 50,62 Z"/>
+    <rect x="47" y="110" width="6" height="10" rx="3"/>
+  </svg>`,
+  /* pre-roll joint */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 110">
+    <rect x="6" y="20" width="16" height="78" rx="8"/>
+    <path d="M14,20 Q9,12 10,5 Q14,9 18,5 Q19,12 14,20"/>
+    <rect x="6" y="82" width="16" height="10" rx="3" opacity="0.5"/>
+  </svg>`,
+  /* lighter */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 58 96">
+    <rect x="4" y="30" width="50" height="62" rx="7"/>
+    <rect x="20" y="18" width="18" height="16" rx="4"/>
+    <path d="M29,18 Q23,10 26,3 Q29,8 32,3 Q35,10 29,18" opacity="0.85"/>
+    <rect x="12" y="54" width="34" height="3" rx="1.5" opacity="0.2"/>
+    <rect x="12" y="62" width="24" height="3" rx="1.5" opacity="0.15"/>
+  </svg>`,
+  /* gummy bear */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 94">
+    <circle cx="32" cy="30" r="22"/>
+    <circle cx="14" cy="15" r="11"/>
+    <circle cx="50" cy="15" r="11"/>
+    <ellipse cx="32" cy="64" rx="22" ry="24"/>
+    <ellipse cx="20" cy="86" rx="9" ry="7"/>
+    <ellipse cx="44" cy="86" rx="9" ry="7"/>
+    <circle cx="26" cy="28" r="3" opacity="0.3"/>
+    <circle cx="38" cy="28" r="3" opacity="0.3"/>
+  </svg>`,
+  /* rolling paper */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 62">
+    <rect x="3" y="4" width="94" height="54" rx="5"/>
+    <line x1="3" y1="18" x2="97" y2="18" stroke="rgba(0,0,0,0.2)" stroke-width="2"/>
+    <path d="M3,44 Q22,52 42,44 Q62,36 82,44 Q91,48 97,52" stroke="rgba(0,0,0,0.18)" fill="none" stroke-width="2"/>
+  </svg>`,
+  /* grinder */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r="46"/>
+    <circle cx="50" cy="50" r="34" fill="none" stroke="rgba(0,0,0,0.15)" stroke-width="7"/>
+    <circle cx="50" cy="50" r="14" fill="rgba(0,0,0,0.12)"/>
+    <line x1="50" y1="16" x2="50" y2="4"  stroke="rgba(0,0,0,0.18)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="50" y1="96" x2="50" y2="84" stroke="rgba(0,0,0,0.18)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="16" y1="50" x2="4"  y2="50" stroke="rgba(0,0,0,0.18)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="96" y1="50" x2="84" y2="50" stroke="rgba(0,0,0,0.18)" stroke-width="5" stroke-linecap="round"/>
+    <line x1="26" y1="26" x2="18" y2="18" stroke="rgba(0,0,0,0.12)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="74" y1="26" x2="82" y2="18" stroke="rgba(0,0,0,0.12)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="26" y1="74" x2="18" y2="82" stroke="rgba(0,0,0,0.12)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="74" y1="74" x2="82" y2="82" stroke="rgba(0,0,0,0.12)" stroke-width="4" stroke-linecap="round"/>
+  </svg>`,
+  /* pre-roll pack / box */
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100">
+    <rect x="5" y="15" width="70" height="80" rx="8"/>
+    <rect x="15" y="5" width="50" height="18" rx="5" opacity="0.8"/>
+    <rect x="20" y="35" width="8" height="44" rx="4" opacity="0.35"/>
+    <rect x="32" y="35" width="8" height="44" rx="4" opacity="0.35"/>
+    <rect x="44" y="35" width="8" height="44" rx="4" opacity="0.35"/>
+  </svg>`,
+];
+
+/* ─── BACKGROUND CANVAS (floating icons) ─── */
+(function initCanvas() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width  = window.innerWidth;
+  const H = canvas.height = window.innerHeight;
+
+  const COLOR = '#0e2a14';
+
+  const items = [];
+  const count = Math.min(28, Math.floor(W * H / 38000));
+
+  for (let i = 0; i < count; i++) {
+    const svg = ICONS[Math.floor(Math.random() * ICONS.length)];
+    const size = 55 + Math.random() * 100;
+    const img  = new Image();
+    const blob = new Blob(
+      [`<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" fill="${COLOR}">${svg}</svg>`],
+      { type: 'image/svg+xml' }
+    );
+    img.src = URL.createObjectURL(blob);
+
+    items.push({
+      img,
+      x: Math.random() * W,
+      y: Math.random() * H,
+      size,
+      rot: Math.random() * Math.PI * 2,
+      rotSpeed: (Math.random() - 0.5) * 0.003,
+      floatAmp: 8 + Math.random() * 18,
+      floatSpeed: 0.0004 + Math.random() * 0.0006,
+      floatOffset: Math.random() * Math.PI * 2,
+      opacity: 0.4 + Math.random() * 0.6,
+    });
+  }
+
+  let raf;
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    for (const item of items) {
+      const floatY = Math.sin(t * item.floatSpeed + item.floatOffset) * item.floatAmp;
+      item.rot += item.rotSpeed;
+      ctx.save();
+      ctx.globalAlpha = item.opacity * 0.055;
+      ctx.translate(item.x + item.size / 2, item.y + item.size / 2 + floatY);
+      ctx.rotate(item.rot);
+      ctx.drawImage(item.img, -item.size / 2, -item.size / 2, item.size, item.size);
+      ctx.restore();
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+})();
+
+/* ─── SMOKE ─── */
+(function initSmoke() {
+  const wrap = document.getElementById('smokeWrap');
+  const colors = [
+    'rgba(30,60,35,0.55)',
+    'rgba(20,45,25,0.4)',
+    'rgba(40,70,45,0.35)',
+    'rgba(15,30,18,0.5)',
+  ];
+
+  for (let i = 0; i < 10; i++) {
+    const puff = document.createElement('div');
+    puff.className = 'smoke-puff';
+    const size = 100 + Math.random() * 200;
+    const dur  = 14 + Math.random() * 18;
+    const drift = (Math.random() - 0.5) * 180;
+
+    puff.style.cssText = `
+      left: ${5 + Math.random() * 90}%;
+      bottom: ${-size}px;
+      width: ${size}px;
+      height: ${size}px;
+      background: radial-gradient(circle, ${colors[i % colors.length]} 0%, transparent 70%);
+      animation-duration: ${dur}s;
+      animation-delay: ${-Math.random() * dur}s;
+      --drift: ${drift}px;
+    `;
+    wrap.appendChild(puff);
+  }
+})();
+
+/* ─── TRICHOME PARTICLES ─── */
+(function initParticles() {
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const dur = 8 + Math.random() * 12;
+    const px  = (Math.random() - 0.5) * 60;
+    p.style.cssText = `
+      left: ${Math.random() * 100}%;
+      bottom: ${Math.random() * 40}%;
+      animation-duration: ${dur}s;
+      animation-delay: ${-Math.random() * dur}s;
+      --px: ${px}px;
+      width: ${1 + Math.random() * 2}px;
+      height: ${1 + Math.random() * 2}px;
+    `;
+    document.body.appendChild(p);
+  }
+})();
+
+/* ─── MEDALS / RANK ICONS ─── */
+const MEDALS = ['👑', '🥈', '🥉'];
+const RANK_CLASS = ['first', 'second', 'third'];
+
+/* store all budtenders for modal lookup */
+let ALL_BUDTENDERS = [];
+
+/* ─── DATE HELPERS ─── */
+function parseDateStr(mmddyyyy) {
+  const [m, d, y] = mmddyyyy.split('/');
+  return new Date(`${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T12:00:00`);
+}
+function formatDate(mmddyyyy) {
+  return parseDateStr(mmddyyyy).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+/* ─── MODAL ─── */
+const backdrop  = document.getElementById('modalBackdrop');
+const modalClose = document.getElementById('modalClose');
+
+function openModal(b, rank) {
+  const scoreColor = rank === 0 ? 'gold' : rank === 1 ? 'silver' : rank === 2 ? 'bronze' : '';
+
+  document.getElementById('modalRank').textContent =
+    rank != null ? `#${rank + 1} · ${['1ST PLACE','2ND PLACE','3RD PLACE'][rank] || `RANK ${rank+1}`}` : '';
+  document.getElementById('modalName').textContent = b.name;
+
+  document.getElementById('modalStats').innerHTML = `
+    <div class="modal-stat">
+      <div class="modal-stat-val ${scoreColor}">${b.avg_upt.toFixed(2)}</div>
+      <div class="modal-stat-label">Avg UPT</div>
+    </div>
+    <div class="modal-stat">
+      <div class="modal-stat-val">${b.total_transactions.toLocaleString()}</div>
+      <div class="modal-stat-label">Transactions</div>
+    </div>
+    <div class="modal-stat">
+      <div class="modal-stat-val">${b.total_units.toLocaleString()}</div>
+      <div class="modal-stat-label">Items Sold</div>
+    </div>`;
+
+  const daily = b.daily_upt || {};
+  const dates = Object.keys(daily).sort((a,b) => parseDateStr(a) - parseDateStr(b));
+
+  if (dates.length > 1) {
+    document.getElementById('modalDailyTitle').textContent = 'Day-by-Day Breakdown';
+    document.getElementById('modalDaily').innerHTML = dates.map(date => {
+      const upt   = daily[date].toFixed(2);
+      const units = (b.daily_units || {})[date] || '—';
+      const txns  = (b.daily_transactions || {})[date] || '—';
+      return `
+        <div class="modal-daily-row">
+          <span class="modal-daily-date">${formatDate(date)}</span>
+          <span class="modal-daily-nums">
+            <span class="modal-daily-sub">${txns} txn · ${units} items</span>
+            <span class="modal-daily-upt">${upt}</span>
+          </span>
+        </div>`;
+    }).join('');
+  } else {
+    document.getElementById('modalDailyTitle').textContent = '';
+    document.getElementById('modalDaily').innerHTML = '';
+  }
+
+  backdrop.classList.add('open');
+}
+
+function closeModal() { backdrop.classList.remove('open'); }
+
+modalClose.addEventListener('click', closeModal);
+backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+/* ─── RENDER ─── */
+function buildDayDots(b, cls) {
+  const days = b.days_present || 1;
+  let dots = '';
+  for (let i = 0; i < days; i++) dots += `<div class="day-dot"></div>`;
+  return `
+    <div class="pod-days">${dots}</div>
+    <div class="pod-days-label">${days} DAY${days !== 1 ? 'S' : ''}</div>`;
+}
+
+function renderPodium(top3) {
+  const wrap = document.getElementById('podiumWrap');
+  if (!top3.length) { wrap.innerHTML = ''; return; }
+
+  const order    = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3.length === 2 ? [top3[1], top3[0]] : [top3[0]];
+  const origRank = top3.length >= 3 ? [1, 0, 2]                   : top3.length === 2 ? [1, 0]              : [0];
+
+  const cols = order.map((b, i) => {
+    const rank = origRank[i];
+    const cls  = RANK_CLASS[rank];
+    return `
+      <div class="pod-card ${cls}" data-name="${b.name}">
+        <div class="pod-rank-num">${rank + 1}</div>
+        <span class="pod-medal">${MEDALS[rank]}</span>
+        <div class="pod-name" data-name="${b.name}" data-rank="${rank}">${b.name}</div>
+        <div class="pod-score">${b.avg_upt.toFixed(2)}</div>
+        <div class="pod-label">Avg Units / Transaction</div>
+        ${buildDayDots(b, cls)}
+      </div>`;
+  });
+
+  wrap.innerHTML = `<div class="podium-wrap">${cols.join('')}</div>`;
+
+  wrap.querySelectorAll('.pod-card').forEach(el => {
+    el.addEventListener('click', () => {
+      const nameEl = el.querySelector('.pod-name');
+      const b = ALL_BUDTENDERS.find(x => x.name === nameEl.dataset.name);
+      if (b) openModal(b, +nameEl.dataset.rank);
+    });
+  });
+}
+
+function renderRankings(rest) {
+  const list    = document.getElementById('rankingsList');
+  const divider = document.getElementById('ranksDivider');
+  if (!rest.length) { list.innerHTML = ''; divider.style.display = 'none'; return; }
+  divider.style.display = 'flex';
+
+  list.innerHTML = rest.map((b, i) => {
+    const rank = i + 4;
+    const days = b.days_present || 1;
+    let dots = '';
+    for (let d = 0; d < days; d++) dots += '<div class="rank-row-dot"></div>';
+    return `
+      <div class="rank-row">
+        <div class="rank-row-num">${rank}</div>
+        <div class="rank-row-name" data-name="${b.name}" data-rank="${rank - 1}">${b.name}</div>
+        <div class="rank-row-dots">${dots}</div>
+        <div class="rank-row-score">${b.avg_upt.toFixed(2)}</div>
+        <div class="rank-row-upt-label">UPT</div>
+        <div class="rank-row-bg">${rank}</div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.rank-row-name').forEach(el => {
+    el.addEventListener('click', () => {
+      const b = ALL_BUDTENDERS.find(x => x.name === el.dataset.name);
+      if (b) openModal(b, +el.dataset.rank);
+    });
+  });
+}
+
+async function loadLeaderboard() {
+  try {
+    const res  = await fetch(`${window.location.origin}/api/leaderboard`);
+    const data = await res.json();
+    ALL_BUDTENDERS = data.budtenders || [];
+
+    const dates = (data.dates_included || []).sort((a,b) => parseDateStr(a) - parseDateStr(b));
+    if (dates.length) {
+      document.getElementById('dateRange').textContent = dates.length === 1
+        ? formatDate(dates[0])
+        : `${formatDate(dates[0])} — ${formatDate(dates[dates.length - 1])}`;
+    }
+
+    document.getElementById('lastUpdated').textContent = data.last_updated || '—';
+
+    if (!ALL_BUDTENDERS.length) {
+      document.getElementById('podiumWrap').innerHTML = `
+        <div class="empty-state">
+          <div class="big-icon">🌿</div>
+          <h2>No Data Yet</h2>
+          <p>Upload a sales report from the admin panel to get started.</p>
+        </div>`;
+      return;
+    }
+
+    renderPodium(ALL_BUDTENDERS.slice(0, 3));
+    renderRankings(ALL_BUDTENDERS.slice(3));
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+loadLeaderboard();
+setInterval(loadLeaderboard, 5 * 60 * 1000);
+</script>
+</body>
+</html>
