@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'tta-budtender-lb-2026')
 
-EXCLUDED_NAMES = {'Jude C', 'Mark M', 'Jeff M', 'Kevin Y'}
+EXCLUDED_NAMES = {'Jude C', 'Mark M', 'Jeff M', 'Kevin Y', 'Allen P'}
 EXCLUDED_CONTAINS = 'DTBK'
 
 # On Railway, mount a volume at /data for persistence
@@ -179,6 +179,21 @@ def remove_date():
     data = rebuild_without_date(data, date)
     save_data(data)
     flash(f'Removed {date} from leaderboard.', 'success')
+    return redirect(url_for('admin'))
+
+
+@app.route('/remove-budtender', methods=['POST'])
+def remove_budtender():
+    name = request.form.get('name')
+    data = load_data()
+    before = len(data['budtenders'])
+    data['budtenders'] = [b for b in data['budtenders'] if b['name'] != name]
+    after = len(data['budtenders'])
+    if before != after:
+        save_data(data)
+        flash(f'Removed {name} from leaderboard.', 'success')
+    else:
+        flash(f'{name} not found.', 'error')
     return redirect(url_for('admin'))
 
 
