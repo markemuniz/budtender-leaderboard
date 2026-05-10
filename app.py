@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'tta-budtender-lb-2026')
 
-EXCLUDED_NAMES = {'Jude C', 'Mark M', 'Jeff M', 'Kevin Y', 'Allen P'}
+EXCLUDED_NAMES = {'Jude C', 'Mark M', 'Jeff M', 'Kevin Y', 'Allen P', 'Kaleo G'}
 EXCLUDED_CONTAINS = 'DTBK'
 
 # On Railway, mount a volume at /data for persistence
