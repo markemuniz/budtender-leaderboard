@@ -11,6 +11,16 @@ app.secret_key = os.environ.get('SECRET_KEY', 'tta-budtender-lb-2026')
 EXCLUDED_NAMES = {'Jude C', 'Mark M', 'Jeff M', 'Kevin Y', 'Allen P', 'Kaleo G'}
 EXCLUDED_CONTAINS = 'DTBK'
 
+SUPERVISORS = {
+    'Juan Carlos R',
+    'Daniel S',
+    'Ariana W',
+    'Edwin D',
+    'Amir C',
+    'Mason M',
+    'Omari P',
+}
+
 # On Railway, mount a volume at /data for persistence
 DATA_DIR    = os.environ.get('DATA_DIR', os.path.join(os.path.dirname(__file__), 'data'))
 DATA_FILE   = os.path.join(DATA_DIR, 'leaderboard.json')
@@ -121,7 +131,18 @@ def admin():
 
 @app.route('/api/leaderboard')
 def api_leaderboard():
-    return jsonify(load_data())
+    data = load_data()
+    all_budtenders = data.get('budtenders', [])
+
+    supervisors = [b for b in all_budtenders if b['name'] in SUPERVISORS]
+    budtenders  = [b for b in all_budtenders if b['name'] not in SUPERVISORS]
+
+    return jsonify({
+        'dates_included': data.get('dates_included', []),
+        'last_updated': data.get('last_updated'),
+        'budtenders': budtenders,
+        'supervisors': supervisors,
+    })
 
 
 @app.route('/upload', methods=['POST'])
