@@ -942,7 +942,7 @@ async function loadLeaderboard() {
   try {
     const res  = await fetch(`${window.location.origin}/api/leaderboard`);
     const data = await res.json();
-    ALL_BUDTENDERS = data.budtenders || [];
+    ALL_BUDTENDERS = (data.budtenders || []).filter(b => b.total_transactions >= 50);
 
     const dates = (data.dates_included || []).sort((a,b) => parseDateStr(a) - parseDateStr(b));
     if (dates.length) {
